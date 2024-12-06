@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federated Learning Metrics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <canvas id="accuracyChart" width="400" height="200"></canvas>
+    <script>
+        // Fetch the metrics.json file (this assumes the file is hosted locally or on a server)
+        fetch('data.json')
+            .then(response => response.json())
+            .then(data => {
+                const nodeAccuracies = data.node_metrics.map(node => node.accuracy);
+                const aggregatedAccuracy = data.aggregated_metrics.aggregated_accuracy;
+
+                // Prepare chart data
+                const chartData = {
+                    labels: data.node_metrics.map(node => 'Node ' + node.node),
+                    datasets: [{
+                        label: 'Node Accuracy',
+                        data: nodeAccuracies,
+                        borderColor: 'blue',
+                        fill: false,
+                        tension: 0.1
+                    }, {
+                        label: 'Aggregated Accuracy',
+                        data: new Array(data.node_metrics.length).fill(aggregatedAccuracy),
+                        borderColor: 'red',
+                        fill: false,
+                        tension: 0.1,
+                        borderDash: [5, 5]
+                    }]
+                };
+
+                // Create the chart
+                const ctx = document.getElementById('accuracyChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: chartData,
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error('Error loading metrics:', error));
+    </script>
+</body>
+</html>
