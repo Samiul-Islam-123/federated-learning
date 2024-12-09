@@ -77,39 +77,57 @@ function App() {
    
   };
 
-  const handleUploadModel = () => {
-    if (file) {
-      console.log("File selected:", file); // Debugging line
-      
-      // Create a FileReader to read the file as ArrayBuffer
-      const reader = new FileReader();
-  
-      reader.onload = () => {
-        // Once the file is read, send the ArrayBuffer as a binary message over the socket
-        const binaryData = reader.result;
-  
-        // Emit the socket event to upload the binary file
-        socket.emit('upload-model', { fileName: file.name, binaryData }, (response) => {
-          if (response.status === 'success') {
-            notification.success({
-              message: 'Model Uploaded Successfully',
-              description: 'The model file has been uploaded to the server.',
-            });
-          } else {
-            notification.error({
-              message: 'Model Upload Failed',
-              description: 'There was an issue uploading the model file.',
-            });
-          }
+  const CHUNK_SIZE = 1024 * 1024;  // 1MB per chunk
+
+const handleUploadModel = () => {
+  if (file) {
+    console.log("File selected:", file);
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const binaryData = reader.result;
+      const totalChunks = Math.ceil(binaryData.byteLength / CHUNK_SIZE);
+
+      if (socket.connected) {
+        for (let i = 0; i < totalChunks; i++) {
+          // Slice the binary data into chunks
+          const chunk = binaryData.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+          // Emit each chunk with necessary metadata
+          socket.emit('upload-model', { 
+            fileName: file.name, 
+            chunk: chunk, 
+            chunkIndex: i, 
+            totalChunks: totalChunks 
+          });
+        }
+
+        notification.success({
+          message: 'Model Upload Started',
+          description: 'Your model file upload has started in chunks.',
         });
-      };
-  
-      // Read the file as ArrayBuffer
-      reader.readAsArrayBuffer(file);
-    } else {
-      message.error('Please select a file to upload.');
-    }
-  };
+      } else {
+        notification.error({
+          message: 'Socket Connection Error',
+          description: 'Socket connection not established. Unable to upload the file.',
+        });
+      }
+    };
+
+    reader.onerror = (error) => {
+      notification.error({
+        message: 'File Reading Error',
+        description: `An error occurred while reading the file: ${error.message}`,
+      });
+    };
+
+    // Read the file as an ArrayBuffer (binary data)
+    reader.readAsArrayBuffer(file);
+  } else {
+    message.error('Please select a file to upload.');
+  }
+};
+
   
   
 

@@ -6,7 +6,7 @@ import io from 'socket.io-client';
 const SocketContext = createContext();
 
 // Establish a Socket.io connection here
-const socket = io('http://localhost:3000'); // Replace with your server's URL if needed
+const socket = io('http://192.168.5.8:3000'); // Replace with your server's URL if needed
 
 export const useSocket = () => {
   return useContext(SocketContext); // Custom hook to access socket in any component
