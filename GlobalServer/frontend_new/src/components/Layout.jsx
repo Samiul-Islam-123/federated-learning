@@ -12,7 +12,7 @@ import { PieChart, Pie, Cell, Tooltip, LineChart, CartesianGrid, XAxis, YAxis, L
 import { Routes, useNavigate, Route } from 'react-router-dom'; // For routing (if applicable)
 import Dashboard from '../views/Dashboard';
 import ClientRequests from '../views/ClientRequests';
-import Model from './Model';
+import Model from '../views/Model';
 import { useSocket } from '../context/SocketContext';
 import { useClientContext } from '../context/ClientContext';
 

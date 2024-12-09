@@ -14,7 +14,7 @@ function Dashboard() {
                         <Col xs={24} sm={12} md={8} lg={6}>
                             <CustomCard title="Clients Online">
                                 <Statistic title="Active Clients" value={clientOnline} suffix="/ 50" />
-                                <Progress percent={46} size="small" />
+                                <Progress percent={((clientOnline/50) * 100)} size="small" />
                             </CustomCard>
                         </Col>
                         <Col xs={24} sm={12} md={8} lg={18}>
