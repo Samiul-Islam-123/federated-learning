@@ -18,7 +18,8 @@ const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
         origin: "*",
-    }
+    },
+    maxHttpBufferSize: 1e8
 });
 
 const adminId = 'admin';
@@ -47,29 +48,42 @@ io.on('connection', (socket) => {
         socket.to(adminSocketID).emit('request-model-admin', (clientInfo));//send it to admin 
     })
 
-    socket.on('upload-model', (data, callback) => {
-        const { fileName, binaryData } = data;
+    socket.on('test', data => {
+        console.log(data)
+    })
 
-        if (!fileName || !binaryData) {
-            return callback({ status: 'error', message: 'Invalid data received' });
+    let fileBuffers = {}; // Store chunks for each file temporarily
+
+    socket.on('upload-model', (data) => {
+        const { fileName, chunk, chunkIndex, totalChunks } = data;
+
+        // Initialize file buffer for this file if it's not already done
+        if (!fileBuffers[fileName]) {
+            fileBuffers[fileName] = { chunks: [], totalChunks: totalChunks };
         }
 
-        // Convert the binary data (ArrayBuffer) to a Buffer object for writing to a file
-        const buffer = Buffer.from(binaryData);
+        // Append the chunk to the file buffer
+        fileBuffers[fileName].chunks[chunkIndex] = chunk;
 
-        // Define the file path to save the model file
-        const modelPath = path.join(__dirname, 'uploads', fileName);
+        // Check if all chunks have been received
+        if (fileBuffers[fileName].chunks.length === totalChunks) {
+            // Combine all chunks into a single buffer
+            const fileBuffer = Buffer.concat(fileBuffers[fileName].chunks);
 
-        // Write the buffer to a file on the server
-        fs.writeFile(modelPath, buffer, (err) => {
-            if (err) {
-                console.error('Error uploading file:', err);
-                callback({ status: 'error', message: 'Error uploading the file' });
-            } else {
-                console.log('File uploaded successfully:', modelPath);
-                callback({ status: 'success' });
-            }
-        });
+            // Save the file to disk
+            fs.writeFile(path.join(__dirname, 'uploads', fileName), fileBuffer, (err) => {
+                if (err) {
+                    console.log('Error saving the file:', err);
+                    socket.emit('upload-response', { status: 'fail', message: 'Error saving file' });
+                } else {
+                    console.log('File uploaded successfully');
+                    // Reset the file buffer for future uploads
+                    delete fileBuffers[fileName];
+
+                    socket.emit('upload-response', { status: 'success', message: 'File uploaded successfully' });
+                }
+            });
+        }
     });
 
     socket.on('approve', (clientInfo) => {
@@ -96,6 +110,6 @@ io.on('connection', (socket) => {
 
 // Start the server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
 });
